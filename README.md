@@ -221,11 +221,11 @@ arduino-cli core update-index \
 arduino-cli core install teensy:avr \
   --additional-urls https://www.pjrc.com/teensy/package_teensy_index.json
 arduino-cli lib install "U8g2"
-arduino-cli compile --profile open-elevator FilmLift.ino
-arduino-cli upload --profile open-elevator --port /dev/ttyACM0 FilmLift.ino
+arduino-cli compile --profile open-elevator OpenElevator.ino
+arduino-cli upload --profile open-elevator --port /dev/ttyACM0 OpenElevator.ino
 ```
 
-Using the Arduino IDE: open `FilmLift.ino`, add the PJRC board manager URL under Preferences, install the Teensy core via Boards Manager, install U8g2 via Library Manager, select Teensy 4.1 under Tools > Board, upload.
+Using the Arduino IDE: open `OpenElevator.ino`, add the PJRC board manager URL under Preferences, install the Teensy core via Boards Manager, install U8g2 via Library Manager, select Teensy 4.1 under Tools > Board, upload.
 
 ### Library versions
 
@@ -244,7 +244,7 @@ Update these deliberately after testing. Do not let `make install` pull whatever
 
 ```
 OpenElevator/
-  FilmLift.ino       main sketch
+  OpenElevator.ino       main sketch
   sketch.yaml        arduino-cli profile: board, core, library pins
   flake.nix          Nix dev shell
   Makefile           compile, upload, monitor, install targets

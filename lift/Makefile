@@ -1,4 +1,4 @@
-SKETCH      := FilmLift.ino
+SKETCH      := OpenElevator.ino
 PROFILE     := open-elevator
 FQBN        := teensy:avr:teensy41
 BAUD        := 115200
