@@ -1,5 +1,5 @@
 SHELL    = /usr/bin/env bash
-SKETCH   = OpenElevator.ino
+SKETCH   = lift.ino
 FQBN     = teensy:avr:teensy41
 BAUD     = 115200
 
@@ -11,13 +11,11 @@ PORT     ?= $(firstword $(wildcard /dev/ttyACM*))
 all: compile
 
 ## compile: build the sketch.
-## The arduino-cli in this shell has the Teensy core and U8g2 baked in
-## via Nix -- no downloads, no sketch.yaml profile needed.
 compile:
 	arduino-cli compile -v \
-		--fqbn $(FQBN) \
-		--build-property "compiler.cpp.extra_flags=\"-DGIT_VERSION=\"$(shell git rev-parse --short HEAD)\"\""  \
-		$(SKETCH)
+	--fqbn $(FQBN) \
+	--build-property "compiler.cpp.extra_flags=\"-DGIT_VERSION=\"$(shell git rev-parse --short HEAD)\"\""  \
+	$(SKETCH)
 
 ## upload: compile and flash.
 ## Requires PJRC udev rules on Linux: https://www.pjrc.com/teensy/00-teensy.rules
