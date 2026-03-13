@@ -1,8 +1,9 @@
 # https://arduino.github.io/arduino-cli/1.2/sketch-project-file/
 profiles:
-  blink:
-    fqbn: esp8266:esp8266:d1_mini
+  open-elevator:
+    fqbn: teensy:avr:teensy41
     platforms:
-      - platform: esp8266:esp8266 (3.1.2)
-        platform_index_url: https://arduino.esp8266.com/stable/package_esp8266com_index.json
+      - platform: teensy:avr (1.59.0)
+        platform_index_url: https://www.pjrc.com/teensy/package_teensy_index.json
     libraries:
+      - U8g2 (2.35.19)
