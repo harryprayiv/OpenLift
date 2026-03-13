@@ -1,5 +1,5 @@
 SHELL    = /usr/bin/env bash
-SKETCH   = FilmLift.ino
+SKETCH   = OpenElevator.ino
 FQBN     = teensy:avr:teensy41
 BAUD     = 115200
 
