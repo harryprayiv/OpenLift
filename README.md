@@ -181,7 +181,9 @@ The config UI uses the same display. Each page is a simple list or value editor 
 
 ## Expanding floor count
 
-The ceiling is 32 floors. `MAX_FLOORS` is a compile-time constant. `NUM_SR_BYTES` controls how many bytes are clocked out of the 74HC165 chain (one byte = one register = 8 floors). Add a 74HC165 and a 74HC595 to the chain, bump `NUM_SR_BYTES` by 1, recompile.
+Set `MAX_FLOORS` at the top of the sketch to however many floors you need. `NUM_SR_BYTES` is derived from it automatically as `(MAX_FLOORS + 7) / 8`, so you do not touch that constant. Add one 74HC165 and one 74HC595 to the shift register chains per additional 8 floors, recompile.
+
+The EEPROM struct grows by `LABEL_LEN` (4) bytes per additional floor. Teensy 4.1 has 4284 bytes of emulated EEPROM. At 4 bytes per floor label plus the fixed fields, you run out of room somewhere past 200 floors. The practical ceiling is how many buttons fit on your panel.
 
 ---
 

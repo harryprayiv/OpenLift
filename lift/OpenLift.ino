@@ -9,8 +9,9 @@
   • EEPROM          — config persists across power cycles
   • SSD1306 OLED    — 128×64 SW-SPI (U8g2)
   • Rotary encoder  — navigation + long-press for config mode
-  • 74HC165 chain   — up to 32 floor-call buttons (daisy-chainable)
-  • 74HC595 chain   — matching button LEDs
+  • 74HC165 chain   — floor-call buttons, one register per 8 floors,
+                      daisy-chain as many as you need (set MAX_FLOORS)
+  • 74HC595 chain   — matching button LEDs, same chain length
   • Door relay pins — trigger prop/servo door controller
 
   Configurable (EEPROM)
@@ -75,8 +76,14 @@ constexpr uint8_t PIN_DOOR_CLOSE = 36;
 //  COMPILE-TIME LIMITS
 // ═══════════════════════════════════════════════════════════════════
 
-constexpr uint8_t  MAX_FLOORS   = 32;   // hardware ceiling (4 × 74HC165)
-constexpr uint8_t  NUM_SR_BYTES = 4;    // 4 registers × 8 bits = 32 buttons
+// MAX_FLOORS is the only constant you need to change when expanding the
+// shift-register chain. Add one 74HC165 and one 74HC595 per additional
+// 8 floors, set MAX_FLOORS to match, recompile. The EEPROM struct grows
+// by LABEL_LEN bytes per extra floor; Teensy 4.1 has 4284 bytes of
+// emulated EEPROM so this is not a practical constraint until well past
+// 200 floors. The real ceiling is how many buttons you want to wire.
+constexpr uint8_t  MAX_FLOORS   = 64;
+constexpr uint8_t  NUM_SR_BYTES = (MAX_FLOORS + 7) / 8;  // derived, do not edit
 constexpr uint8_t  LABEL_LEN    = 4;    // chars per floor label incl. '\0'
 constexpr uint16_t EEPROM_MAGIC = 0xE1A7;
 constexpr uint16_t EEPROM_BASE  = 0;
@@ -110,11 +117,17 @@ struct ElevatorConfig {
     travelPerFloor_ms = 1500;
     dispatchMode      = DISPATCH_COLLECTIVE;
 
-    // Stock film-useful floor set: Basement, Ground, Mezzanine, 1–5
-    const char* defaults[] = { "B", "G", "M", "1", "2", "3", "4", "5" };
+    // Pre-fill all MAX_FLOORS slots so there is always a valid label
+    // regardless of what numFloors gets set to in config.
+    // Slots 0-2 get film-standard basement/ground/mezzanine labels.
+    // Remaining slots get their 1-based floor number as a string.
+    // A user setting e.g. 40 floors will get "B","G","M","1".."37"
+    // by default and can rename any of them in the label editor.
     for (uint8_t i = 0; i < MAX_FLOORS; i++) {
-      if (i < 8)  strncpy(floorLabels[i], defaults[i], LABEL_LEN);
-      else        snprintf(floorLabels[i], LABEL_LEN, "%d", i - 2);
+      if      (i == 0) strncpy(floorLabels[i], "B",  LABEL_LEN);
+      else if (i == 1) strncpy(floorLabels[i], "G",  LABEL_LEN);
+      else if (i == 2) strncpy(floorLabels[i], "M",  LABEL_LEN);
+      else             snprintf(floorLabels[i], LABEL_LEN, "%d", i - 2);
       floorLabels[i][LABEL_LEN - 1] = '\0';
     }
   }
@@ -237,11 +250,28 @@ void drawHUD() {
     case DISPATCH_MANUAL:     u8g2.print("MANU"); break;
   }
 
-  // Pending-call dots (left strip, bottom-up, up to 10 visible)
-  uint8_t shown = min((uint8_t)10, cfg.numFloors);
-  for (uint8_t i = 0; i < shown; i++) {
-    if (el.callPending[i] || el.hallCallUp[i] || el.hallCallDown[i])
-      u8g2.drawDisc(4, 54 - i * 5, 2, U8G2_DRAW_ALL);
+  // Pending-call dots — left strip, bottom-up.
+  // The strip is 54px tall at 5px per slot = 10 slots visible.
+  // When numFloors > 10 we show a window of 10 floors centered on
+  // currentFloor so the active floor is always on screen.
+  constexpr uint8_t DOT_SLOTS  = 10;
+  constexpr uint8_t DOT_PITCH  = 5;
+  int8_t windowBase;   // lowest floor index shown in the strip
+  if (cfg.numFloors <= DOT_SLOTS) {
+    windowBase = 0;
+  } else {
+    windowBase = (int8_t)el.currentFloor - (DOT_SLOTS / 2);
+    if (windowBase < 0) windowBase = 0;
+    if (windowBase + DOT_SLOTS > cfg.numFloors)
+      windowBase = (int8_t)cfg.numFloors - DOT_SLOTS;
+  }
+  for (uint8_t slot = 0; slot < DOT_SLOTS && (windowBase + slot) < cfg.numFloors; slot++) {
+    uint8_t fi = windowBase + slot;
+    uint8_t y  = 54 - slot * DOT_PITCH;
+    bool    pending = el.callPending[fi] || el.hallCallUp[fi] || el.hallCallDown[fi];
+    bool    here    = ((int8_t)fi == el.currentFloor);
+    if (here)    u8g2.drawFrame(2, y - 2, 5, 5);   // hollow square = current floor
+    if (pending) u8g2.drawDisc(4, y, 2, U8G2_DRAW_ALL);
   }
 
   // Door panels — two bars sliding from centre outward
