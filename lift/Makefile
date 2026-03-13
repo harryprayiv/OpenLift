@@ -1,73 +1,45 @@
-SKETCH      := OpenElevator.ino
-PROFILE     := open-elevator
-FQBN        := teensy:avr:teensy41
-BAUD        := 115200
+SHELL    = /usr/bin/env bash
+SKETCH   = FilmLift.ino
+FQBN     = teensy:avr:teensy41
+BAUD     = 115200
 
-# arduino-cli resolves ARDUINO_DIRECTORIES_* from the environment,
-# set by the Nix shell hook. If you are running outside of nix develop,
-# set _ARDUINO_PROJECT_DIR manually before invoking make.
+# Auto-detect Teensy serial port. Override: make upload PORT=/dev/ttyACM1
+PORT     ?= $(firstword $(wildcard /dev/ttyACM*))
 
-CLI         := arduino-cli
-PICOCOM     := picocom
-
-# Auto-detect the Teensy serial port. Teensy 4.1 shows up as /dev/ttyACM*
-# on Linux. Override PORT on the command line if you have multiple devices:
-#   make upload PORT=/dev/ttyACM1
-PORT        ?= $(firstword $(wildcard /dev/ttyACM*))
-
-.PHONY: all compile upload monitor install clean help
+.PHONY: all compile upload monitor flash clean help
 
 all: compile
 
-## install: fetch the Teensy core and all libraries declared in sketch.yaml
-install:
-	$(CLI) core update-index \
-		--additional-urls https://www.pjrc.com/teensy/package_teensy_index.json
-	$(CLI) core install teensy:avr \
-		--additional-urls https://www.pjrc.com/teensy/package_teensy_index.json
-	$(CLI) lib install "U8g2"
-
-## compile: build the sketch against the Teensy 4.1 profile
+## compile: build the sketch.
+## The arduino-cli in this shell has the Teensy core and U8g2 baked in
+## via Nix -- no downloads, no sketch.yaml profile needed.
 compile:
-	$(CLI) compile \
-		--profile $(PROFILE) \
-		--warnings all \
-		$(SKETCH)
-
-## upload: compile and flash. Requires the Teensy udev rules on Linux.
-upload: compile
-	@if [ -z "$(PORT)" ]; then \
-		echo "No serial port found. Is the Teensy plugged in?"; \
-		exit 1; \
-	fi
-	$(CLI) upload \
-		--profile $(PROFILE) \
-		--port $(PORT) \
-		$(SKETCH)
-
-## monitor: open a serial monitor at BAUD. Ctrl-A Ctrl-X to exit picocom.
-monitor:
-	@if [ -z "$(PORT)" ]; then \
-		echo "No serial port found. Is the Teensy plugged in?"; \
-		exit 1; \
-	fi
-	$(PICOCOM) --baud $(BAUD) $(PORT)
-
-## flash: upload without recompiling (uses last build artifact)
-flash:
-	@if [ -z "$(PORT)" ]; then \
-		echo "No serial port found. Is the Teensy plugged in?"; \
-		exit 1; \
-	fi
-	$(CLI) upload \
+	arduino-cli compile -v \
 		--fqbn $(FQBN) \
-		--port $(PORT) \
+		--build-property "compiler.cpp.extra_flags=\"-DGIT_VERSION=\"$(shell git rev-parse --short HEAD)\"\""  \
 		$(SKETCH)
 
-## clean: remove build artifacts from the sketch directory
+## upload: compile and flash.
+## Requires PJRC udev rules on Linux: https://www.pjrc.com/teensy/00-teensy.rules
+upload: compile
+	[ -e "$(PORT)" ] && \
+	arduino-cli upload -v -p $(PORT) --fqbn $(FQBN) $(SKETCH) || \
+	{ echo "==> $(PORT) not available. Is the Teensy plugged in?"; exit 1; }
+
+## flash: upload last build artifact without recompiling.
+flash:
+	[ -e "$(PORT)" ] && \
+	arduino-cli upload -v -p $(PORT) --fqbn $(FQBN) $(SKETCH) || \
+	{ echo "==> $(PORT) not available. Is the Teensy plugged in?"; exit 1; }
+
+## monitor: open picocom. Ctrl-A Ctrl-X to exit.
+monitor:
+	picocom -b $(BAUD) --imap lfcrlf $(PORT)
+
+## clean: remove build artifacts.
 clean:
 	rm -rf build/
 
-## help: list available targets
+## help: list targets.
 help:
 	@grep -E '^##' Makefile | sed 's/## /  /'

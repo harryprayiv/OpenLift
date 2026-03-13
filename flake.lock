@@ -1,5 +1,32 @@
 {
   "nodes": {
+    "arduino-index": {
+      "flake": false,
+      "locked": {
+        "narHash": "sha256-X0TcP4RN2v8xZ5FcKT5RgYcAgDhS1/orgQc0e4oBNxk=",
+        "type": "file",
+        "url": "https://downloads.arduino.cc/packages/package_index.json"
+      },
+      "original": {
+        "type": "file",
+        "url": "https://downloads.arduino.cc/packages/package_index.json"
+      }
+    },
+    "arduino-nix": {
+      "locked": {
+        "lastModified": 1758613361,
+        "narHash": "sha256-ulyRVe492In6I/jXhCYzLuPwoQqv+jhDLHUikK0jdh0=",
+        "owner": "bouk",
+        "repo": "arduino-nix",
+        "rev": "cfa82ced5b5d9436edec9238cf493f6b2c643869",
+        "type": "github"
+      },
+      "original": {
+        "owner": "bouk",
+        "repo": "arduino-nix",
+        "type": "github"
+      }
+    },
     "flake-utils": {
       "inputs": {
         "systems": "systems"
@@ -16,6 +43,18 @@
         "owner": "numtide",
         "repo": "flake-utils",
         "type": "github"
+      }
+    },
+    "library-index": {
+      "flake": false,
+      "locked": {
+        "narHash": "sha256-1qekD7+nvbdkT8xYjbOdhQ/7IrHf4YDw0qCqwEZbcJI=",
+        "type": "file",
+        "url": "https://downloads.arduino.cc/libraries/library_index.json"
+      },
+      "original": {
+        "type": "file",
+        "url": "https://downloads.arduino.cc/libraries/library_index.json"
       }
     },
     "nixpkgs": {
@@ -35,8 +74,12 @@
     },
     "root": {
       "inputs": {
+        "arduino-index": "arduino-index",
+        "arduino-nix": "arduino-nix",
         "flake-utils": "flake-utils",
-        "nixpkgs": "nixpkgs"
+        "library-index": "library-index",
+        "nixpkgs": "nixpkgs",
+        "teensy-index": "teensy-index"
       }
     },
     "systems": {
@@ -52,6 +95,18 @@
         "owner": "nix-systems",
         "repo": "default",
         "type": "github"
+      }
+    },
+    "teensy-index": {
+      "flake": false,
+      "locked": {
+        "narHash": "sha256-O8B3YUcf1TGzfaKaqL7ZJVNqxtu6ZT46BXUlU323LJs=",
+        "type": "file",
+        "url": "https://www.pjrc.com/teensy/package_teensy_index.json"
+      },
+      "original": {
+        "type": "file",
+        "url": "https://www.pjrc.com/teensy/package_teensy_index.json"
       }
     }
   },

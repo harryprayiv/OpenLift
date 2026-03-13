@@ -191,29 +191,53 @@ The EEPROM struct grows by `LABEL_LEN` (4) bytes per additional floor. Teensy 4.
 
 ### With Nix (recommended)
 
-The flake provides a dev shell with `arduino-cli`, `gnumake`, `picocom`, and `teensy-loader-cli` pinned via nixpkgs. All arduino-cli data directories are scoped to the project so this does not interfere with other Arduino work on the same machine.
+The flake uses [arduino-nix](https://github.com/bouk/arduino-nix) to fetch the Teensy core and U8g2 as Nix derivations and bake them into a wrapped `arduino-cli` binary. There are no runtime downloads and no dependency on arduino-cli's bundled Python.
 
 ```sh
 nix develop
-make install   # fetch the Teensy core and U8g2 from their respective indexes
 make           # compile
 make upload    # compile and flash (auto-detects /dev/ttyACM*)
 make monitor   # open picocom at 115200
 ```
 
-`make install` pulls the Teensy core from PJRC's package index and U8g2 from the Arduino library registry. It only needs to run once per machine, or after a `make clean`.
+On Linux, uploading to a Teensy requires udev rules for the PJRC USB vendor ID. If `make upload` fails with a permissions error, install the rules from https://www.pjrc.com/teensy/00-teensy.rules, copy to `/etc/udev/rules.d/`, and run `udevadm control --reload-rules`.
 
-On Linux, uploading to a Teensy requires udev rules for the PJRC USB vendor ID. If `make upload` fails with a permissions error, install the rules file from https://www.pjrc.com/teensy/00-teensy.rules, copy it to `/etc/udev/rules.d/`, and run `udevadm control --reload-rules`.
-
-If your port is not `/dev/ttyACM0`, override it:
+Override the port if needed:
 
 ```sh
 make upload PORT=/dev/ttyACM1
 ```
 
+### Pinned versions
+
+Core and library versions are pinned in `flake.nix`:
+
+```
+Teensy core    teensy:avr 1.59.0
+U8g2           2.35.19
+```
+
+The PJRC package index and Arduino library index are pinned as flake inputs and locked in `flake.lock`. To update them:
+
+```sh
+nix flake update teensy-index
+nix flake update library-index
+```
+
+Then verify the build still works before committing the updated lock file.
+
+To browse available versions from the nix repl:
+
+```sh
+nix repl
+:lf .
+pkgs.arduinoPackages.platforms.teensy.avr
+pkgs.arduinoLibraries.U8g2
+```
+
 ### Without Nix
 
-Install `arduino-cli` manually, then:
+Install `arduino-cli` manually, then fetch the Teensy core and U8g2:
 
 ```sh
 arduino-cli core update-index \
@@ -221,22 +245,11 @@ arduino-cli core update-index \
 arduino-cli core install teensy:avr \
   --additional-urls https://www.pjrc.com/teensy/package_teensy_index.json
 arduino-cli lib install "U8g2"
-arduino-cli compile --profile open-elevator OpenElevator.ino
-arduino-cli upload --profile open-elevator --port /dev/ttyACM0 OpenElevator.ino
+arduino-cli compile --fqbn teensy:avr:teensy41 FilmLift.ino
+arduino-cli upload --fqbn teensy:avr:teensy41 --port /dev/ttyACM0 FilmLift.ino
 ```
 
-Using the Arduino IDE: open `OpenElevator.ino`, add the PJRC board manager URL under Preferences, install the Teensy core via Boards Manager, install U8g2 via Library Manager, select Teensy 4.1 under Tools > Board, upload.
-
-### Library versions
-
-`sketch.yaml` pins the libraries and platform version used during development. The current pins are:
-
-```
-Teensy core    teensy:avr 1.59.0
-U8g2           2.35.19
-```
-
-Update these deliberately after testing. Do not let `make install` pull whatever is current without verifying the build.
+Using the Arduino IDE: add the PJRC board manager URL under Preferences, install the Teensy core via Boards Manager, install U8g2 via Library Manager, select Teensy 4.1 under Tools > Board, upload.
 
 ---
 
@@ -244,10 +257,10 @@ Update these deliberately after testing. Do not let `make install` pull whatever
 
 ```
 OpenElevator/
-  OpenElevator.ino       main sketch
-  sketch.yaml        arduino-cli profile: board, core, library pins
-  flake.nix          Nix dev shell
-  Makefile           compile, upload, monitor, install targets
+  FilmLift.ino       main sketch
+  flake.nix          Nix dev shell, pinned Teensy core and U8g2 via arduino-nix
+  flake.lock         locked input hashes
+  Makefile           compile, upload, monitor targets
   README.md          this file
   LICENSE            Apache 2.0
   hardware/          (planned) KiCad schematics and PCB layout
