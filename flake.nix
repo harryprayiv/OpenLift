@@ -45,7 +45,7 @@
       teensy-index,
       library-index,
     }:
-    flake-utils.lib.eachSystem [ "x86_64-linux" "aarch64-linux" ] (
+    (flake-utils.lib.eachSystem [ "x86_64-linux" "aarch64-linux" ] (
       system:
       let
         pkgs = import nixpkgs {
@@ -119,5 +119,20 @@
 
         formatter = pkgs.nixfmt-tree;
       }
-    );
+    )) // {
+    # NixOS module that installs the PJRC udev rules so the Teensy
+    # shows up as writable without manual file copying.
+    # Usage in your NixOS config:
+    #
+    #   inputs.open-elevator.url = "path:/path/to/OpenLift";
+    #   imports = [ inputs.open-elevator.nixosModules.teensy-udev ];
+    #
+    # Then: sudo nixos-rebuild switch, replug the Teensy.
+    nixosModules.teensy-udev = { pkgs, ... }: {
+      services.udev.extraRules = builtins.readFile (pkgs.fetchurl {
+        url    = "https://www.pjrc.com/teensy/00-teensy.rules";
+        sha256 = "sha256-I9lMXZDsEAOaJuKFBGEMQqWHkFxEIqHMYBaEOhlzCXQ=";
+      });
+    };
+  };
 }
