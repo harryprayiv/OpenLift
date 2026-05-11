@@ -249,7 +249,7 @@ arduino-cli compile --fqbn teensy:avr:teensy41 FilmLift.ino
 arduino-cli upload --fqbn teensy:avr:teensy41 --port /dev/ttyACM0 FilmLift.ino
 ```
 
-Using the Arduino IDE: add the PJRC board manager URL under Preferences, install the Teensy core via Boards Manager, install U8g2 via Library Manager, select Teensy 4.1 under Tools > Board, upload.
+Using the Arduino IDE: add the PJRC board manager URL under Preferences, install the Teensy core via Boards Manager, install U8g2 via Library Manager, select Teensy 4.1 under Tools > Board, upload. 
 
 ---
 
